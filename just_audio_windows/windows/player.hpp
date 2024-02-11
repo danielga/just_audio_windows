@@ -126,6 +126,7 @@ public:
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> player_channel_;
   std::unique_ptr<JustAudioEventSink> event_sink_ = nullptr;
   std::unique_ptr<JustAudioEventSink> data_sink_ = nullptr;
+  winrt::apartment_context ui_context_;
 
   AudioPlayer::AudioPlayer(std::string idx, flutter::BinaryMessenger* messenger) {
     id = idx;
@@ -176,7 +177,11 @@ public:
         break;
       }
 
-      event_sink_->Error(code, errorMessage);
+      [=]() -> winrt::fire_and_forget
+      {
+        co_await ui_context_;
+        event_sink_->Error(code, errorMessage);
+      }();
     });
 
     mediaPlaybackList.MaxPlayedItemsToKeepOpen(2);
@@ -210,7 +215,11 @@ public:
         break;
       }
 
-      event_sink_->Error(code, message);
+      [=]() -> winrt::fire_and_forget
+      {
+        co_await ui_context_;
+        event_sink_->Error(code, message);
+      }();
     });
   }
   AudioPlayer::~AudioPlayer() {
@@ -529,7 +538,11 @@ public:
       eventData[flutter::EncodableValue("currentIndex")] = flutter::EncodableValue(0); //int
     }
 
-    event_sink_->Success(eventData);
+    [=]() -> winrt::fire_and_forget
+    {
+      co_await ui_context_;
+      event_sink_->Success(eventData);
+    }();
   }
 
   int AudioPlayer::processingState(Playback::MediaPlaybackState state) {
@@ -559,7 +572,11 @@ public:
     eventData[flutter::EncodableValue("loopMode")] = flutter::EncodableValue(getLoopMode());
     eventData[flutter::EncodableValue("shuffleMode")] = flutter::EncodableValue(getShuffleMode());
 
-    data_sink_->Success(eventData);
+    [=]() -> winrt::fire_and_forget
+    {
+      co_await ui_context_;
+      data_sink_->Success(eventData);
+    }();
   }
 
   int AudioPlayer::getLoopMode() {
